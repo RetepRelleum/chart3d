@@ -65,7 +65,8 @@ class EnumColor(Enum):
     r2w = 1
     g2w = 2
     b2w = 3
-    g2W = 4
+    gr2w = 4
+    r2b=5
 
 
 class Color:
@@ -92,6 +93,11 @@ class Color:
             return self._get_green(x)
         elif self._col.value == EnumColor.b2w.value:
             return self._get_blue(x)
+        elif self._col.value == EnumColor.r2b.value:
+            if x>0.5:
+                return self._get_red((x-0.5)*2)
+            else:
+                return self._get_blue(1-(x*2))
         else:
             return self._get_gray(x)
 

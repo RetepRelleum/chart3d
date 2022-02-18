@@ -1,10 +1,8 @@
-
-from enum import Enum
-from typing import Tuple
-from .chart3dhelp import *
 from datetime import datetime
+from typing import Tuple
 
-import numpy as np
+from .chart3dhelp import *
+
 
 def __append(_triangles, n1, n2, n3):
     f1 = np.array([[n1, n2, n3]])
@@ -78,7 +76,7 @@ def __get_quader(z: float = 1,
                  colx: Color = Color(0, 1.0, 0.0),
                  dxyz: Point = Point(0, 0, 0),
                  zoom: Point = Point(1, 1, 1),
-                 sockel: float =-1
+                 sockel: float = -1
                  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     __vertices = np.empty((0, 3)).astype(np.float64)
     __vcolors = np.empty((0, 3)).astype(np.float64)
@@ -112,25 +110,21 @@ def __get_quader(z: float = 1,
 
 
 def matrix_to_vertices(matrix: np.ndarray, spalt: float = 1,
-                       colx:EnumColor=EnumColor.r2w,
+                       colx: EnumColor = EnumColor.r2w,
                        dxyz: Point = Point(0, 0, 0),
-                       zoom: Point = Point(2, 1, 1),
+                       zoom: Point = Point(1, 1, 1),
                        sockel: float = -1
                        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     converts a matrix into a point cloud, color description, and triangle
 
     Args:
-
         zoom:
         dxyz:
         spalt:
         colx:
         matrix:
-        step_y:
-        step_x:
         sockel:
-
 
     Returns:
         object:
@@ -139,60 +133,67 @@ def matrix_to_vertices(matrix: np.ndarray, spalt: float = 1,
 
     __vertices = np.empty((0, 3)).astype(np.float64)
     __vcolors = np.empty((0, 3)).astype(np.float64)
-    __date=None
+    __date = datetime(1, 1, 2)
     xi = 0.0
     yi = 0.0
     for x in matrix:
         for y in x:
             if isinstance(y, datetime):
-                __date=y
+                __date = y
             else:
                 if isinstance(__date, datetime):
                     yy = (y * 10.0 - np.min(matrix[0:, 1:])) / (np.max(matrix[0:, 1:]) - np.min(matrix[0:, 1:]))
                 else:
                     yy = (y * 10.0 - np.min(matrix)) / (np.max(matrix) - np.min(matrix))
 
-                vert = np.array([[(xi + dxyz.x) * zoom.x, (yi + dxyz.y) * zoom.y, (sockel + dxyz.z) * zoom.z],
-                                 [(xi + dxyz.x) * zoom.x, (yi + dxyz.y) * zoom.y, (yy + dxyz.z) * zoom.z],
-                                 [(xi + dxyz.x + spalt) * zoom.x, (yi + dxyz.y) * zoom.y, (sockel + dxyz.z) * zoom.z],
-                                 [(xi + dxyz.x + spalt) * zoom.x, (yi + dxyz.y) * zoom.y, (yy + dxyz.z) * zoom.z]],
+                vert = np.array([[xi, yi, sockel],
+                                 [xi, yi, yy],
+                                 [xi + spalt, yi, sockel],
+                                 [xi + spalt, yi, yy]],
                                 dtype=float)
                 __vertices = np.append(__vertices, vert, axis=0)
 
-                col = Color(col=colx).get_color(yy/10).get_numpy_array()
+                if __date.strftime('%w') == '0':
+                    col = Color(col=EnumColor.gr2w).get_color(0.5).get_numpy_array()
+                elif __date.strftime('%d') == '01':
+                    col = Color(col=EnumColor.gr2w).get_color(0.25).get_numpy_array()
+                else:
+                    col = Color(col=colx).get_color(yy / 10).get_numpy_array()
 
                 __vcolors = np.append(__vcolors, col, axis=0)
                 __vcolors = np.append(__vcolors, col, axis=0)
                 __vcolors = np.append(__vcolors, col, axis=0)
                 __vcolors = np.append(__vcolors, col, axis=0)
-
                 yi += 1
         yi = 0
         xi += 1
-    if isinstance(__date, datetime):
-        __triangles = __get_triangles(matrix[0:, 1:])
-    else:
+    col = Color(col=EnumColor.gr2w).get_color(0.75)
+    if __date==datetime(1, 1, 2):
         __triangles = __get_triangles(matrix)
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix)
+    else:
+        __triangles = __get_triangles(matrix[0:, 1:])
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix[0:, 1:])
+
+    __vertices = __vertices * zoom.get_array()
+    __vertices = __vertices + dxyz.get_array()
     return __vertices, __vcolors, __triangles
 
 
 def matrix_to_vertices_quader(matrix: np.ndarray,
-                              dxyz: Point = Point(0, 0, 20),
-                              colx: EnumColor = EnumColor.b2w,
-                              zoom: Point = Point(2, 1, 1),
+                              dxyz: Point = Point(0, 0, 0),
+                              colx: EnumColor = EnumColor.r2b,
+                              zoom: Point = Point(1, 1, 1),
                               sockel: float = -1
                               ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     converts a matrix into a point cloud, color description, and triangle
 
-    
-
     """
-
     __vertices = None
     __vcolors = None
     __triangles = None
-    __date=None
+    __date = datetime(1, 1, 2)
 
     xi = 0
     yi = 0
@@ -206,14 +207,51 @@ def matrix_to_vertices_quader(matrix: np.ndarray,
                 else:
                     yy = (y * 10.0 - np.min(matrix)) / (np.max(matrix) - np.min(matrix))
 
-                vertices, vcolors, triangles = __get_quader(yy, dxyz=Point(yi +dxyz.x, xi+dxyz.y, 0+dxyz.z), colx=Color(col=colx).get_color(yy/10),sockel=sockel,zoom=zoom)
-                __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,
+                if __date.strftime('%w') == '0':
+                    col = Color(col=EnumColor.gr2w).get_color(0.5)
+                elif __date.strftime('%d') == '01':
+                    col = Color(col=EnumColor.gr2w).get_color(0.25)
+                else:
+                    col = Color(col=colx).get_color(yy / 10)
+
+                vertices, vcolors, triangles = __get_quader(yy, dxyz=Point(yi, xi, 0),
+                                                            colx=col, sockel=sockel)
+                __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices,
+                                                                     vcolors,
                                                                      triangles)
-
-
-            xi += 1
+                xi += 1
         xi = 0
         yi += 1
-        vertices=vertices*zoom
 
+    col = Color(col=EnumColor.gr2w).get_color(0.75)
+    if __date==datetime(1, 1, 2):
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix)
+    else:
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix[0:, 1:])
+
+    __vertices = __vertices * zoom.get_array()
+    __vertices = __vertices + dxyz.get_array()
     return __vertices, __vcolors, __triangles
+
+
+def make_grid(__triangles, __vcolors, __vertices, col, matrix):
+    for a2 in range(int(np.shape(matrix)[0] / 10)+1 ):
+        for a1 in range(5):
+            vertices, vcolors, triangles = __get_quader(1, colx=col, sockel=0,zoom=Point(0.1, np.shape(matrix)[1] - 1, 0.1))
+            vertices = vertices + np.array([-0.1 + a2 * 10, 0, a1 * 2])
+            __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,triangles)
+
+    for a2 in range(int(np.shape(matrix)[1] / 10) +1):
+        for a1 in range(5):
+            vertices, vcolors, triangles = __get_quader(1, colx=col, sockel=0,zoom=Point(np.shape(matrix)[0] - 1, 0.1, 0.1))
+            vertices = vertices + np.array([0, -0.1 + a2 * 10 , a1 * 2])
+            __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,  triangles)
+
+    for a2 in range(int(np.shape(matrix)[0] / 10) +1):
+        for a1 in range(int(np.shape(matrix)[1] / 10) + 1):
+            vertices, vcolors, triangles = __get_quader(1, colx=col, sockel=0, zoom=Point(0.1, 0.1, 8))
+            vertices = vertices + np.array([-0.1 + a2 * 10, a1 * 2 * 5 , 0])
+            __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,triangles)
+
+    return __triangles, __vcolors, __vertices
+
