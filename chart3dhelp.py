@@ -112,7 +112,7 @@ class Color:
         """
         return Color(self._f2(x), self._f3(x), self._f1())
 
-    def get_green(self, x: float = 1):
+    def _get_green(self, x: float = 1):
         """
         Return a Color Class
         Args:
@@ -216,3 +216,4 @@ class Color:
                 as [r,g,b] in 0-1
         """
         return np.array([self._r, self._g, self._b], dtype=float)
+

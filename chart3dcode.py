@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Tuple
 
+from chart3d.font import font as fx
 from .chart3dhelp import *
 
 
@@ -28,8 +29,8 @@ def __get_triangles(matrix: np.ndarray) -> np.ndarray:
         if xr != 0:
             __triangles = __append(__triangles, 2 + xx - ad, 0 + xx, 1 + xx)
             __triangles = __append(__triangles, 3 + xx - ad, 2 + xx - ad, 1 + xx)
-        for fx in range(np.shape(matrix)[1] - 1):
-            ae = fx * 4 + xx
+        for fxx in range(np.shape(matrix)[1] - 1):
+            ae = fxx * 4 + xx
             # vorne
             __triangles = __append(__triangles, 0 + ae - ab, 1 + ae, 4 + ae - ab)
             __triangles = __append(__triangles, 4 + ae - ab, 1 + ae, 5 + ae)
@@ -52,12 +53,12 @@ def __get_triangles(matrix: np.ndarray) -> np.ndarray:
     return __triangles
 
 
-def __append_quader(__vertices: np.ndarray,
-                    __vcolors: np.ndarray,
-                    __triangles: np.ndarray,
-                    _vertices: np.ndarray,
-                    _vcolors: np.ndarray,
-                    _triangles: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def append_quader(__vertices: np.ndarray,
+                  __vcolors: np.ndarray,
+                  __triangles: np.ndarray,
+                  _vertices: np.ndarray,
+                  _vcolors: np.ndarray,
+                  _triangles: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     if __vertices is None:
         __vertices = np.array(_vertices)
         __vcolors = np.array(_vcolors)
@@ -72,12 +73,12 @@ def __append_quader(__vertices: np.ndarray,
     return __vertices, __vcolors, __triangles
 
 
-def __get_quader(z: float = 1,
-                 colx: Color = Color(0, 1.0, 0.0),
-                 dxyz: Point = Point(0, 0, 0),
-                 zoom: Point = Point(1, 1, 1),
-                 sockel: float = -1
-                 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def get_quader(z: float = 1,
+               colx: Color = Color(0, 1.0, 0.0),
+               dxyz: Point = Point(0, 0, 0),
+               zoom: Point = Point(1, 1, 1),
+               sockel: float = -1
+               ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     __vertices = np.empty((0, 3)).astype(np.float64)
     __vcolors = np.empty((0, 3)).astype(np.float64)
     __triangles = np.empty((0, 3)).astype(np.int32)
@@ -168,12 +169,12 @@ def matrix_to_vertices(matrix: np.ndarray, spalt: float = 1,
         yi = 0
         xi += 1
     col = Color(col=EnumColor.gr2w).get_color(0.75)
-    if __date==datetime(1, 1, 2):
+    if __date == datetime(1, 1, 2):
         __triangles = __get_triangles(matrix)
-        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix)
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix, colx)
     else:
         __triangles = __get_triangles(matrix[0:, 1:])
-        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix[0:, 1:])
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix[0:, 1:], colx)
 
     __vertices = __vertices * zoom.get_array()
     __vertices = __vertices + dxyz.get_array()
@@ -184,7 +185,7 @@ def matrix_to_vertices_quader(matrix: np.ndarray,
                               dxyz: Point = Point(0, 0, 0),
                               colx: EnumColor = EnumColor.r2b,
                               zoom: Point = Point(1, 1, 1),
-                              sockel: float = -1
+                              sockel: float = -1,xlabel='xlabel',ylabel='ylabel',zlabel='ylabel',ueber='Photovoltaik Produktion'
                               ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     converts a matrix into a point cloud, color description, and triangle
@@ -214,44 +215,137 @@ def matrix_to_vertices_quader(matrix: np.ndarray,
                 else:
                     col = Color(col=colx).get_color(yy / 10)
 
-                vertices, vcolors, triangles = __get_quader(yy, dxyz=Point(yi, xi, 0),
-                                                            colx=col, sockel=sockel)
-                __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices,
-                                                                     vcolors,
-                                                                     triangles)
+                vertices, vcolors, triangles = get_quader(yy, dxyz=Point(yi, xi, 0),
+                                                          colx=col, sockel=sockel)
+                __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, vertices,
+                                                                   vcolors,
+                                                                   triangles)
                 xi += 1
         xi = 0
         yi += 1
+        if __date.strftime('%d') == '01':
+            ve, vc, tr = Font3d().str2meshyf(__date.strftime("%-d.%b,%Y"), dxyz=Point(yi, np.shape(matrix)[1], 0),
+                                             zoom=Point(0.1, 0.075, 0.1))
+            __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
 
     col = Color(col=EnumColor.gr2w).get_color(0.75)
-    if __date==datetime(1, 1, 2):
-        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix)
+    if __date == datetime(1, 1, 2):
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix, colx)
     else:
-        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix[0:, 1:])
+        __triangles, __vcolors, __vertices = make_grid(__triangles, __vcolors, __vertices, col, matrix[0:, 1:], colx)
+
+    col = Color(col=colx).get_color(0)
+    ve, vc, tr = Font3d().str2meshy(str(np.min(matrix[0:, 1:])), dxyz=Point(0, np.shape(matrix)[1], 0),
+                                    zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+    col = Color(col=colx).get_color(1)
+    ve, vc, tr = Font3d().str2meshy(str(np.max(matrix[0:, 1:])), dxyz=Point(0, np.shape(matrix)[1], 10),
+                                    zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+
+    col = Color(col=EnumColor.gr2w).get_color(0.75)
+    ve, vc, tr = Font3d().str2meshyf('00:00', dxyz=Point(-3, 0, 0),zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+
+    col = Color(col=EnumColor.gr2w).get_color(0.75)
+    ve, vc, tr = Font3d().str2meshyf('24:00', dxyz=Point(-3, np.shape(matrix)[1]-3, 0),zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+
+    col = Color(col=EnumColor.gr2w).get_color(0.75)
+    ve, vc, tr = Font3d().str2meshyf(xlabel, dxyz=Point(-3, np.shape(matrix)[1]/2, 0),zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+##ff
+    ve, vc, tr = Font3d().str2meshx(ylabel, dxyz=Point(np.shape(matrix)[0]/2, np.shape(matrix)[1], 10),zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+
+    ve, vc, tr = Font3d().str2meshy(zlabel, dxyz=Point(0, np.shape(matrix)[1], 5),zoom=Point(0.1, 0.075, 0.1), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
+
+    col = Color(col=EnumColor.g2w).get_color(1)
+    ve, vc, tr = Font3d().str2meshy(ueber, dxyz=Point(0, np.shape(matrix)[1]/2-5, 12),zoom=Point(0.15, 0.1, 0.15), colx=col)
+    __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, ve, vc, tr)
 
     __vertices = __vertices * zoom.get_array()
     __vertices = __vertices + dxyz.get_array()
     return __vertices, __vcolors, __triangles
 
 
-def make_grid(__triangles, __vcolors, __vertices, col, matrix):
-    for a2 in range(int(np.shape(matrix)[0] / 10)+1 ):
-        for a1 in range(5):
-            vertices, vcolors, triangles = __get_quader(1, colx=col, sockel=0,zoom=Point(0.1, np.shape(matrix)[1] - 1, 0.1))
+def make_grid(__triangles, __vcolors, __vertices, col, matrix, colx):
+    for a2 in range(int(np.shape(matrix)[0] / 10) + 1):
+        for a1 in range(6):
+            vertices, vcolors, triangles = get_quader(1, colx=Color(col=colx).get_color(a1 / 5), sockel=0,
+                                                      zoom=Point(0.1, np.shape(matrix)[1] - 1, 0.1))
             vertices = vertices + np.array([-0.1 + a2 * 10, 0, a1 * 2])
-            __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,triangles)
+            __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,
+                                                               triangles)
 
-    for a2 in range(int(np.shape(matrix)[1] / 10) +1):
-        for a1 in range(5):
-            vertices, vcolors, triangles = __get_quader(1, colx=col, sockel=0,zoom=Point(np.shape(matrix)[0] - 1, 0.1, 0.1))
-            vertices = vertices + np.array([0, -0.1 + a2 * 10 , a1 * 2])
-            __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,  triangles)
+    for a2 in range(int(np.shape(matrix)[1] / 10) + 1):
+        for a1 in range(6):
+            vertices, vcolors, triangles = get_quader(1, colx=Color(col=colx).get_color(a1 / 5), sockel=0,
+                                                      zoom=Point(np.shape(matrix)[0] - 1, 0.1, 0.1))
+            vertices = vertices + np.array([0, -0.1 + a2 * 10, a1 * 2])
+            __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,
+                                                               triangles)
 
-    for a2 in range(int(np.shape(matrix)[0] / 10) +1):
+    for a2 in range(int(np.shape(matrix)[0] / 10) + 1):
         for a1 in range(int(np.shape(matrix)[1] / 10) + 1):
-            vertices, vcolors, triangles = __get_quader(1, colx=col, sockel=0, zoom=Point(0.1, 0.1, 8))
-            vertices = vertices + np.array([-0.1 + a2 * 10, a1 * 2 * 5 , 0])
-            __vertices, __vcolors, __triangles = __append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,triangles)
+            vertices, vcolors, triangles = get_quader(1, colx=col, sockel=0, zoom=Point(0.1, 0.1, 10))
+            vertices = vertices + np.array([-0.1 + a2 * 10, a1 * 2 * 5, 0])
+            __vertices, __vcolors, __triangles = append_quader(__vertices, __vcolors, __triangles, vertices, vcolors,
+                                                               triangles)
 
     return __triangles, __vcolors, __vertices
 
+
+class Font3d:
+    def __init__(self):
+        pass
+
+    def str2meshx(self, st: str, dxyz: Point = Point(0, 0, 0), zoom: Point = Point(1, 1, 1),
+                  colx: Color = Color(0, 0, 0)):
+        return self.__str2mesh(st, dxyz, zoom, colx, flip=0)
+
+    def str2meshy(self, st: str, dxyz: Point = Point(0, 0, 0), zoom: Point = Point(1, 1, 1),
+                  colx: Color = Color(0, 0, 0)):
+        return self.__str2mesh(st, dxyz, zoom, colx, flip=1)
+
+    def str2meshyf(self, st: str, dxyz: Point = Point(0, 0, 0), zoom: Point = Point(1, 1, 1),
+                   colx: Color = Color(0, 0, 0)):
+        return self.__str2mesh(st, dxyz, zoom, colx, flip=3)
+
+    def str2meshz(self, st: str, dxyz: Point = Point(0, 0, 0), zoom: Point = Point(1, 1, 1),
+                  colx: Color = Color(0, 0, 0)):
+        return self.__str2mesh(st, dxyz, zoom, colx, flip=2)
+
+    def __str2mesh(self, st: str = '', dxyz: Point = Point(0, 0, 0), zoom: Point = Point(1, 1, 1),
+                   col: Color = Color(0, 0, 0), flip: int = 0):
+        vertices = None
+        vcolors = None
+        triangles = None
+
+        si = 0
+
+        for s in reversed(st):
+            yi = 0
+            f = fx[ord(s)]
+            for y in reversed(f):
+                xi = 0
+                for x in range(8):
+                    if int(y) >> x & 1 == 1:
+                        if flip == 0:
+                            vertices_, vcolors_, triangles_ = get_quader(1, dxyz=Point((8-xi) - 8 * si,yi, 0), colx=col)
+                        elif flip == 1:
+                            vertices_, vcolors_, triangles_ = get_quader(1, dxyz=Point(0, xi + 8 * si, yi), colx=col)
+                        elif flip == 2:
+                            vertices_, vcolors_, triangles_ = get_quader(1, dxyz=Point(yi, 0, xi + 8 * si), colx=col)
+                        elif flip == 3:
+                            vertices_, vcolors_, triangles_ = get_quader(1, dxyz=Point(yi, xi + 8 * si, 0), colx=col)
+                        vertices, vcolors, triangles = append_quader(vertices, vcolors, triangles, vertices_, vcolors_,
+                                                                     triangles_)
+                    xi += 1
+                yi += 1
+            si += 1
+
+        vertices = vertices * zoom.get_array()
+        vertices = vertices + dxyz.get_array()
+        return vertices, vcolors, triangles
